@@ -1,92 +1,84 @@
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import accuracy_score
-from keras.models import load_model, Model
 import numpy as np
+from keras._tf_keras.keras.models import load_model
+from sklearn.ensemble import RandomForestClassifier, VotingClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import GridSearchCV
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+
 from data_loader import DataLoader
 
 # Load the pre-trained CNN model
 model = load_model('brain_tumor_cnn_model.keras')
 
 def extract_features_from_cnn(model, generator):
-    """
-    Extract features from the CNN model using the Flatten or GlobalAveragePooling2D layer.
-    """
-    features = []
-    labels = []
+    features, labels = [], []
 
-    for batch, label_batch in generator:
+    # Calculate the number of batches to process
+    steps = len(generator)
+
+    for i in range(steps):
+        batch, label_batch = next(generator)
         batch_features = model.predict(batch)
         features.append(batch_features)
         labels.append(label_batch)
 
-        # Stop when all data is processed
-        if len(labels) >= len(generator):
-            break
+    return np.vstack(features), np.hstack(labels)
 
-    # Stack features and labels into numpy arrays
-    features = np.vstack(features)
-    labels = np.hstack(labels)
-
-    return features, labels
 
 def train_classifiers(train_features, train_labels, test_features, test_labels):
-    """
-    Train multiple classifiers on the extracted features.
-    """
+    # Hyperparameter tuning for SVM
+    param_grid_svm = {'C': [0.1, 1, 10, 100], 'kernel': ['linear', 'rbf']}
+    grid_svm = GridSearchCV(SVC(), param_grid_svm, refit=True, verbose=0)
+    grid_svm.fit(train_features, train_labels)
 
-    # Hyperparameter tuning for SVM using GridSearchCV
-    print("Running hyperparameter tuning for SVM...")
-    param_grid = {'C': [0.1, 1, 10, 100], 'kernel': ['linear', 'rbf']}
-    grid = GridSearchCV(SVC(), param_grid, refit=True, verbose=2)
-    grid.fit(train_features, train_labels)
+    print(f"Best SVM Params: {grid_svm.best_params_}, Best Training Accuracy: {grid_svm.best_score_:.4f}")
+    svm_best = grid_svm.best_estimator_
 
-    print("Best parameters for SVM:", grid.best_params_)
-    print("Best accuracy for SVM on training data:", grid.best_score_)
-
-    # Train and test SVM with the best parameters from grid search
-    svm_best = grid.best_estimator_
-    svm_pred = svm_best.predict(test_features)
-    print('SVM Accuracy on test set:', accuracy_score(test_labels, svm_pred))
-
-    # Train and test Random Forest
-    rf = RandomForestClassifier()
-    rf.fit(train_features, train_labels)
-    rf_pred = rf.predict(test_features)
-    print('Random Forest Accuracy:', accuracy_score(test_labels, rf_pred))
-
-    # Train and test KNN
-    knn = KNeighborsClassifier()
-    knn.fit(train_features, train_labels)
-    knn_pred = knn.predict(test_features)
-    print('KNN Accuracy:', accuracy_score(test_labels, knn_pred))
-
-    # Train and test Logistic Regression
+    # Train Logistic Regression and Random Forest separately
     lr = LogisticRegression()
     lr.fit(train_features, train_labels)
-    lr_pred = lr.predict(test_features)
-    print('Logistic Regression Accuracy:', accuracy_score(test_labels, lr_pred))
+
+    rf = RandomForestClassifier()
+    rf.fit(train_features, train_labels)
+
+    # Ensemble model: SVM, Logistic Regression, and Random Forest
+    ensemble_model = VotingClassifier(estimators=[('svm', svm_best), ('lr', lr), ('rf', rf)], voting='hard')
+    ensemble_model.fit(train_features, train_labels)
+    print(f"Ensemble Accuracy: {accuracy_score(test_labels, ensemble_model.predict(test_features)):.4f}")
+
+    # Hyperparameter tuning for Random Forest
+    param_grid_rf = {'n_estimators': [50, 100, 200], 'max_depth': [10, 20, None]}
+    grid_rf = GridSearchCV(RandomForestClassifier(), param_grid_rf, refit=True, verbose=0)
+    grid_rf.fit(train_features, train_labels)
+    print(f"Best Random Forest Params: {grid_rf.best_params_}, Best Training Accuracy: {grid_rf.best_score_:.4f}")
+
+    # Train and evaluate KNN
+    knn = KNeighborsClassifier()
+    knn.fit(train_features, train_labels)
+    print(f'KNN Accuracy: {accuracy_score(test_labels, knn.predict(test_features)):.4f}')
+
+    # Evaluate Logistic Regression (already trained for VotingClassifier)
+    print(f'Logistic Regression Accuracy: {accuracy_score(test_labels, lr.predict(test_features)):.4f}')
 
 if __name__ == "__main__":
-    # Step 1: Define dataset directories
+    # Dataset directories
     train_dir = 'dataset/train'
     val_dir = 'dataset/val'
     test_dir = 'dataset/test'
 
-    # Step 2: Create an instance of DataLoader and get the data generators
+    # Load the dataset
     data_loader = DataLoader(train_dir, val_dir, test_dir)
     train_generator, val_generator, test_generator = data_loader.get_data_generators()
 
-    # Step 3: Extract features from the CNN
-    print("Extracting features from CNN model for training set...")
+    # Extract features from CNN
+    print("Extracting CNN features for training set...")
     train_features, train_labels = extract_features_from_cnn(model, train_generator)
 
-    print("Extracting features from CNN model for test set...")
+    print("Extracting CNN features for test set...")
     test_features, test_labels = extract_features_from_cnn(model, test_generator)
 
-    # Step 4: Train classifiers and print their accuracies
-    print("Training classifiers on extracted features...")
+    # Train and evaluate classifiers
+    print("Training classifiers...")
     train_classifiers(train_features, train_labels, test_features, test_labels)
