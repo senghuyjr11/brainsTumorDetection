@@ -8,14 +8,16 @@ This project uses a pre-trained Convolutional Neural Network (CNN) for feature e
 - **Image Prediction**: Ability to predict on new MRI images or batch of images in a directory.
 
 ## Project Structure
-├── dataset/                 # Train, val, test datasets
-├── models/                  # Saved models
-├── cnn_model.py             # CNN model definition
-├── data_loader.py           # Data loading utilities
-├── main.py                  # CNN model training
-├── hybrid_classifier.py     # ML classifiers on CNN features
-├── predict.py               # Prediction script
-└── requirements.txt         # Dependencies
+├── dataset/ # Train, val, test datasets 
+│ ├── no/ 
+│ └── yes/ 
+├── models/ # Saved models 
+├── cnn_model.py # CNN model definition 
+├── data_loader.py # Data loading utilities 
+├── main.py # CNN model training
+├── hybrid_classifier.py # ML classifiers on CNN features
+├── predict.py # Prediction script 
+└── requirements.txt # Dependencies
 
 ## Requirements
 - Python 3.x
