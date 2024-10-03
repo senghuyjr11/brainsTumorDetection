@@ -12,12 +12,13 @@ class DataLoader:
     def get_data_generators(self):
         # Data augmentation for the training set
         train_datagen = ImageDataGenerator(
-            rescale=1./255,  # Normalize pixel values
-            rotation_range=20,
-            zoom_range=0.15,
-            width_shift_range=0.2,
-            height_shift_range=0.2,
-            horizontal_flip=True
+            rescale=1. / 255,
+            rotation_range=30,
+            zoom_range=0.2,
+            width_shift_range=0.3,
+            height_shift_range=0.3,
+            brightness_range=[0.8, 1.2],
+            vertical_flip=True
         )
 
         # Rescaling for validation and test sets (no augmentation)

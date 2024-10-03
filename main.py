@@ -1,9 +1,12 @@
+from keras._tf_keras.keras.applications import VGG16
+from keras._tf_keras.keras.models import Sequential
+from keras._tf_keras.keras.layers import Dense, Flatten, Dropout
+from keras._tf_keras.keras.optimizers import Adam
 from data_loader import DataLoader
-from cnn_model import create_model
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.utils import class_weight
-import numpy as np
 from keras._tf_keras.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+import numpy as np
 
 # Define dataset directories
 train_dir = 'dataset/train'
@@ -22,8 +25,26 @@ class_weights_array = class_weight.compute_class_weight(
 )
 class_weights = {0: class_weights_array[0], 1: class_weights_array[1]}
 
-# Create the CNN model
-model = create_model()
+# Load the VGG16 model pre-trained on ImageNet, excluding the top layers
+base_model = VGG16(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+
+# Freeze the layers of the pre-trained model to avoid training them
+for layer in base_model.layers:
+    layer.trainable = False
+
+# Build the full model by adding custom layers on top of the pre-trained base model
+model = Sequential([
+    base_model,
+    Flatten(),  # Flatten the output of the VGG16 model
+    Dense(128, activation='relu'),
+    Dropout(0.5),  # Prevent overfitting
+    Dense(1, activation='sigmoid')  # Binary classification layer
+])
+
+# Compile the model with Adam optimizer
+model.compile(optimizer=Adam(learning_rate=0.001),
+              loss='binary_crossentropy',
+              metrics=['accuracy'])
 
 # Callbacks for early stopping and learning rate reduction
 callbacks = [
@@ -31,7 +52,7 @@ callbacks = [
     ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=3, min_lr=1e-5)
 ]
 
-# Train the CNN model
+# Train the model
 history = model.fit(
     train_generator,
     steps_per_epoch=len(train_generator),
@@ -42,12 +63,12 @@ history = model.fit(
     callbacks=callbacks
 )
 
-# Evaluate the model
+# Evaluate the model on the test set
 test_loss, test_accuracy = model.evaluate(test_generator, steps=len(test_generator))
 print(f'Test accuracy: {test_accuracy * 100:.2f}%')
 
-# Save the model
-model.save('brain_tumor_cnn_model.keras')
+# Save the trained model
+model.save('brain_tumor_vgg16_model.keras')
 
 # Generate predictions and evaluate
 y_pred = (model.predict(test_generator, steps=len(test_generator)) > 0.5).astype(int)

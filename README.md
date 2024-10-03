@@ -8,6 +8,7 @@ This project uses a pre-trained Convolutional Neural Network (CNN) for feature e
 - **Image Prediction**: Ability to predict on new MRI images or batch of images in a directory.
 
 ## Project Structure
+```
 ├── dataset/ # Train, val, test datasets 
 │ ├── no/ 
 │ └── yes/ 
@@ -15,10 +16,11 @@ This project uses a pre-trained Convolutional Neural Network (CNN) for feature e
 ├── cnn_model.py # CNN model definition 
 ├── data_loader.py # Data loading utilities 
 ├── main.py # CNN model training
-├── hybrid_classifier.py # ML classifiers on CNN features
+├── ml_classifier.py # ML classifiers on CNN features
+├── hybrid_classifier.py # ML hybrid classifiers on CNN features
 ├── predict.py # Prediction script 
 └── requirements.txt # Dependencies
-
+```
 ## Requirements
 - Python 3.x
 - Required libraries are listed in `requirements.txt`.
@@ -36,8 +38,8 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 ### Installation
 1. Clone the repository:
-- git clone https://github.com/your-username/brain-tumor-detection.git
-- cd brain-tumor-detection
+- git clone https://github.com/senghuyjr11/brainsTumorDetection.git
+- cd brainsTumorDetection
 - pip install -r requirements.txt
 - pip install numpy opencv-python scikit-learn tensorflow keras xgboost lightgbm
 
