@@ -7,9 +7,9 @@ yes_dir = '/home/senghuyjr11/Projects/brain_tumor_dataset/yes'
 no_dir = '/home/senghuyjr11/Projects/brain_tumor_dataset/no'
 
 # Destination directories for train, val, and test sets
-train_dir = 'dataset/train'
-val_dir = 'dataset/val'
-test_dir = 'dataset/test'
+train_dir = '../dataset/train'
+val_dir = '../dataset/val'
+test_dir = '../dataset/test'
 
 # Create directories for train, validation, and test
 for folder in [train_dir, val_dir, test_dir]:

@@ -3,7 +3,7 @@ from keras._tf_keras.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, D
 from keras._tf_keras.keras.optimizers import Adam
 
 # Build the CNN model (without tuning logic)
-def create_model(learning_rate=1e-3):
+def create_cnn_model(learning_rate=1e-3):
     model = Sequential()
 
     model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(224, 224, 3)))

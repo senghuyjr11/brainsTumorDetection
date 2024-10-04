@@ -7,10 +7,11 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 
-from data_loader import DataLoader
+from utils.config import CNN_MODEL
+from utils.data_loader import DataLoader
 
 # Load the pre-trained CNN model
-model = load_model('brain_tumor_cnn_model.keras')
+model = load_model('models/'+CNN_MODEL)
 
 def extract_features_from_cnn(model, generator):
     features, labels = [], []
