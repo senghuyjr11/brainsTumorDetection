@@ -1,13 +1,12 @@
 import numpy as np
-from keras._tf_keras.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.utils import class_weight
-
-from models.cnn_model import create_cnn_model
-from models.vgg16_model import create_vgg16_model, get_callbacks
-from utils.config import VGG16_MODEL, CNN_MODEL
-from utils.data_loader import DataLoader
 from sklearn.utils.class_weight import compute_class_weight
+
+from models.resnet50_model import create_resnet_model
+from models.vgg16_model import get_callbacks
+from utils.config import RESNET50_MODEL
+from utils.data_loader import DataLoader
 
 # Define dataset directories
 train_dir = 'dataset/train'
@@ -28,26 +27,14 @@ class_weights = compute_class_weight('balanced', classes=np.unique(train_generat
 class_weights = dict(enumerate(class_weights))
 
 # Load the VGG16 model pre-trained on ImageNet, excluding the top layers
-model = create_vgg16_model()
+model = create_resnet_model(input_shape=(224, 224, 3))
 callbacks = get_callbacks()
-# model.fit(train_generator, validation_data=val_generator, epochs=20, callbacks=callbacks)
-# Calculating steps_per_epoch and validation_steps
-steps_per_epoch = len(train_generator) if hasattr(train_generator, '__len__') else train_generator.samples // train_generator.batch_size
-validation_steps = len(val_generator) if hasattr(val_generator, '__len__') else val_generator.samples // val_generator.batch_size
-
-# Updated callbacks
-# callbacks = [
-#     EarlyStopping(monitor='val_accuracy', patience=5, restore_best_weights=True),  # Update to monitor available metric
-#     ReduceLROnPlateau(monitor='val_accuracy', factor=0.2, patience=3, min_lr=1e-5)  # Update to monitor available metric
-# ]
 
 # Fit the model with updated steps and callbacks
 model.fit(
     train_generator,
-    # steps_per_epoch=steps_per_epoch,
     epochs=20,
     validation_data=val_generator,
-    # validation_steps=validation_steps,
     class_weight=class_weights,
     callbacks=callbacks
 )
@@ -57,7 +44,7 @@ test_loss, test_accuracy = model.evaluate(test_generator, steps=len(test_generat
 print(f'Test accuracy: {test_accuracy * 100:.2f}%')
 
 # Save the trained model
-model.save('models/'+VGG16_MODEL)
+model.save('models/'+RESNET50_MODEL)
 
 # Generate predictions and evaluate
 y_pred = (model.predict(test_generator, steps=len(test_generator)) > 0.5).astype(int)

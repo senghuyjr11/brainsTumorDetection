@@ -1,33 +1,26 @@
 from keras._tf_keras.keras.applications import VGG16
 from keras._tf_keras.keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from keras._tf_keras.keras.layers import Dense, Flatten, Dropout, BatchNormalization, Input
+from keras._tf_keras.keras.layers import Dense, Dropout
+from keras._tf_keras.keras.layers import GlobalAveragePooling2D
 from keras._tf_keras.keras.models import Model
 from keras._tf_keras.keras.optimizers import RMSprop
-from keras._tf_keras.keras.regularizers import l2
 
 
 # Load the VGG16 model pre-trained on ImageNet, excluding the top layers
-def create_vgg16_model():
-    base_model = VGG16(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+def create_vgg16_model(input_shape):
+    base_model = VGG16(weights='imagenet', include_top=False, input_shape=input_shape)
 
     # Freeze the initial layers of the pre-trained model to avoid training them
     # Allow the last few layers to be trainable for fine-tuning
-    for layer in base_model.layers[:-8]:  # Unfreeze more layers for fine-tuning
-        layer.trainable = True
+    for layer in base_model.layers:
+        layer.trainable = False
 
-    # Build the full model by adding custom layers on top of the pre-trained base model
-    inputs = Input(shape=(224, 224, 3))
-    x = base_model(inputs, training=False)
-    x = Flatten()(x)
-    x = Dense(256, activation='relu', kernel_regularizer=l2(0.001))(x)
-    x = BatchNormalization()(x)
-    x = Dropout(0.3)(x)  # Prevent overfitting
-    x = Dense(128, activation='relu', kernel_regularizer=l2(0.001))(x)
-    x = BatchNormalization()(x)
-    x = Dropout(0.3)(x)  # Prevent overfitting
-    outputs = Dense(1, activation='sigmoid')(x)  # Binary classification layer
-
-    model = Model(inputs, outputs)
+    x_resnet = base_model.output
+    x_resnet = GlobalAveragePooling2D()(x_resnet)  # Use GAP instead of Flatten
+    x_resnet = Dense(512, activation='relu')(x_resnet)
+    x_resnet = Dropout(0.5)(x_resnet)
+    output_resnet = Dense(1, activation='sigmoid')(x_resnet)
+    model = Model(inputs=base_model.input, outputs=output_resnet)
 
     # Compile the model with Adam optimizer
     model.compile(optimizer=RMSprop(learning_rate=0.0001),

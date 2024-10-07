@@ -17,7 +17,7 @@ decode_predictions = keras.applications.xception.decode_predictions
 last_conv_layer_name = "block14_sepconv2_act"
 
 # The local path to our target image
-img_path = 'dataset/val/yes/Y3.jpg'
+img_path = 'dataset/train/yes/Y13.jpg'
 
 def get_img_array(img_path, size):
     img = keras.utils.load_img(img_path, target_size=size)
