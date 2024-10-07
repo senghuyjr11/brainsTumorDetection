@@ -13,12 +13,13 @@ class DataLoader:
         # Data augmentation for the training set
         train_datagen = ImageDataGenerator(
             rescale=1. / 255,
-            rotation_range=30,
+            rotation_range=20,
+            width_shift_range=0.2,
+            height_shift_range=0.2,
+            shear_range=0.2,
             zoom_range=0.2,
-            width_shift_range=0.3,
-            height_shift_range=0.3,
-            brightness_range=[0.8, 1.2],
-            vertical_flip=True
+            horizontal_flip=True,
+            fill_mode='nearest'
         )
 
         # Rescaling for validation and test sets (no augmentation)

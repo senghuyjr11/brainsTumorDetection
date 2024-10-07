@@ -15,7 +15,7 @@ from utils.config import VGG16_MODEL
 from utils.data_loader import DataLoader  # Assuming you have a custom DataLoader
 
 # Load the pre-trained VGG16 model
-model = load_model(VGG16_MODEL)
+model = load_model('models/'+VGG16_MODEL)
 
 # Create a directory to store the .pkl files if it doesn't exist
 pkl_dir = 'saved_classifiers'
