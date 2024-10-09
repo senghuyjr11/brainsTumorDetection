@@ -47,8 +47,11 @@ def evaluate_gradcam_on_test_set(test_images_and_masks, threshold=0.5):
         ground_truth = cv2.resize(ground_truth, (150, 150))
         ground_truth = np.where(ground_truth > 128, 1, 0)  # Convert to binary mask
 
-        # Generate Grad-CAM heatmap
-        heatmap_resnet = get_gradcam_resnet(model_resnet, img_array_resnet, 'conv5_block3_out')
+        # Generate Grad-CAM++ heatmap
+        heatmap_resnet = get_gradcam_plus_plus(model_resnet, img_array_resnet, 'conv5_block3_out')
+
+        # Reduce multi-channel heatmap to a single channel by taking the mean or max
+        heatmap_resnet = np.mean(heatmap_resnet, axis=-1)  # Alternatively, use np.max(heatmap_resnet, axis=-1)
 
         # Resize the heatmap to match the input image size
         heatmap_resnet = cv2.resize(heatmap_resnet, (150, 150))
@@ -75,7 +78,7 @@ def evaluate_gradcam_on_test_set(test_images_and_masks, threshold=0.5):
         plt.imshow(ground_truth, cmap='gray')
 
         plt.subplot(1, 3, 3)
-        plt.title("Grad-CAM (ResNet50)")
+        plt.title("Grad-CAM++ (ResNet50)")
         plt.imshow(superimposed_img_resnet)
         plt.show()
 
@@ -88,27 +91,62 @@ def evaluate_gradcam_on_test_set(test_images_and_masks, threshold=0.5):
     return avg_iou, avg_dice
 
 
-def get_gradcam_resnet(model, img_array, last_conv_layer_name):
+def get_gradcam_plus_plus(model, img_array, last_conv_layer_name):
     grad_model = Model([model.inputs], [model.get_layer(last_conv_layer_name).output, model.output])
 
     with tf.GradientTape() as tape:
         conv_outputs, predictions = grad_model(img_array)
         loss = predictions[:, 0]
 
-    # Compute the gradients of the loss with respect to the last convolutional layer
+    # Debug: Print the shape of conv_outputs to inspect
+    print(f"conv_outputs shape: {conv_outputs.shape}")
+
+    # Compute the gradients of the loss with respect to the output feature maps
     grads = tape.gradient(loss, conv_outputs)
 
-    # Compute the mean of the gradients for each feature map
-    pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
+    # Compute positive gradients, ReLU-like behavior
+    grads = tf.where(grads > 0, grads, 0.0)
 
-    # Multiply each feature map by the importance weights
-    conv_outputs = conv_outputs[0]
-    heatmap = conv_outputs @ pooled_grads[..., tf.newaxis]
-    heatmap = tf.squeeze(heatmap)
+    # Compute squared gradients
+    grads_squared = grads ** 2
+
+    # Compute third order gradients
+    grads_cubed = grads_squared * grads
+
+    # Sum over the gradients of each feature map along batch, height, and width
+    sum_grads = tf.reduce_sum(grads, axis=(0, 1, 2))
+
+    # Get the number of channels
+    channels = conv_outputs.shape[-1]
+
+    # Debug: Print the shape of sum_grads to inspect
+    print(f"sum_grads shape: {sum_grads.shape}, expected channels: {channels}")
+
+    # Ensure sum_grads is correctly shaped
+    sum_grads = tf.reshape(sum_grads, [1, 1, channels])
+
+    # Tile sum_grads to match the spatial dimensions of grads_squared
+    sum_grads = tf.tile(sum_grads, [conv_outputs.shape[1], conv_outputs.shape[2], 1])  # Tile across height and width
+
+    # Compute alpha values (importance of each feature map)
+    alpha_num = grads_squared
+    alpha_denom = 2 * grads_squared + sum_grads
+    alpha = alpha_num / (alpha_denom + tf.keras.backend.epsilon())
+
+    # Compute the importance weights for each feature map
+    weights = tf.reduce_sum(alpha * tf.maximum(grads, 0), axis=(0, 1))
+
+    # Compute the weighted combination of the feature maps
+    weighted_conv_outputs = tf.reduce_sum(weights * conv_outputs, axis=-1)
 
     # Normalize the heatmap
-    heatmap = np.maximum(heatmap, 0) / np.max(heatmap)
-    return heatmap
+    if np.max(weighted_conv_outputs) != 0:
+        heatmap = weighted_conv_outputs / np.max(weighted_conv_outputs)
+    else:
+        heatmap = weighted_conv_outputs  # Fallback in case of zero max value
+
+    return heatmap.numpy()
+
 
 def superimpose_gradcam(img_path, heatmap, alpha=0.4):
     # Load the original image
@@ -118,8 +156,18 @@ def superimpose_gradcam(img_path, heatmap, alpha=0.4):
     # Resize the heatmap to match the original image size
     heatmap = cv2.resize(heatmap, (img.shape[1], img.shape[0]))
 
-    # Convert the heatmap to an RGB image
+    # Ensure the heatmap is 2D (single-channel)
+    if len(heatmap.shape) == 3:
+        heatmap = np.mean(heatmap, axis=-1)
+
+    # Normalize the heatmap between 0 and 255
     heatmap = np.uint8(255 * heatmap)
+
+    # Ensure the heatmap is single-channel before applying the colormap
+    if len(heatmap.shape) == 3 and heatmap.shape[-1] != 1:
+        heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2GRAY)
+
+    # Apply the JET color map to the heatmap
     heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
 
     # Superimpose the heatmap on the original image
@@ -127,36 +175,14 @@ def superimpose_gradcam(img_path, heatmap, alpha=0.4):
 
     return superimposed_img
 
+
+# Example usage of Grad-CAM++
 if __name__ == '__main__':
-    # Select an image for visualization
-    img_path_resnet = 'dataset/train/yes/Y13.jpg'
-    img_resnet = load_img(img_path_resnet, target_size=(150, 150))
-    img_array_resnet = img_to_array(img_resnet)
-    img_array_resnet = np.expand_dims(img_array_resnet, axis=0)
-
-    # Generate Grad-CAM heatmap using the final convolutional layer in ResNet50
-    heatmap_resnet = get_gradcam_resnet(model_resnet, img_array_resnet, 'conv5_block3_out')
-
-    # Superimpose the heatmap on the original image
-    superimposed_img_resnet = superimpose_gradcam(img_path_resnet, heatmap_resnet)
 
     # Example test set (replace with actual image and mask paths)
     test_images_and_masks = [
-        ('dataset/test/yes/Y11.jpg', 'dataset/mask/mask_Y11.jpg'),
-        ('dataset/test/yes/Y24.jpg', 'dataset/mask/mask_Y24.jpg'),
-        # Add more test images and corresponding masks here
+        ('dataset/test/yes/Y11.jpg', 'dataset/mask/mask_Y11.jpg')
     ]
+    # Run evaluation on the test set
+    avg_iou, avg_dice = evaluate_gradcam_on_test_set(test_images_and_masks)
 
-    # Run evaluation
-    evaluate_gradcam_on_test_set(test_images_and_masks)
-
-    # Display the result
-    plt.figure(figsize=(10, 10))
-    plt.subplot(1, 2, 1)
-    plt.title("Original Image")
-    plt.imshow(img_resnet)
-
-    plt.subplot(1, 2, 2)
-    plt.title("Grad-CAM (ResNet50)")
-    plt.imshow(superimposed_img_resnet)
-    plt.show()
