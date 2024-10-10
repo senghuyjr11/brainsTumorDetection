@@ -98,9 +98,6 @@ def get_gradcam_plus_plus(model, img_array, last_conv_layer_name):
         conv_outputs, predictions = grad_model(img_array)
         loss = predictions[:, 0]
 
-    # Debug: Print the shape of conv_outputs to inspect
-    print(f"conv_outputs shape: {conv_outputs.shape}")
-
     # Compute the gradients of the loss with respect to the output feature maps
     grads = tape.gradient(loss, conv_outputs)
 
@@ -118,9 +115,6 @@ def get_gradcam_plus_plus(model, img_array, last_conv_layer_name):
 
     # Get the number of channels
     channels = conv_outputs.shape[-1]
-
-    # Debug: Print the shape of sum_grads to inspect
-    print(f"sum_grads shape: {sum_grads.shape}, expected channels: {channels}")
 
     # Ensure sum_grads is correctly shaped
     sum_grads = tf.reshape(sum_grads, [1, 1, channels])
@@ -184,5 +178,5 @@ if __name__ == '__main__':
         ('dataset/test/yes/Y11.jpg', 'dataset/mask/mask_Y11.jpg')
     ]
     # Run evaluation on the test set
-    avg_iou, avg_dice = evaluate_gradcam_on_test_set(test_images_and_masks)
+    evaluate_gradcam_on_test_set(test_images_and_masks)
 

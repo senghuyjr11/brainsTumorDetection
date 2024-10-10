@@ -4,6 +4,7 @@ import joblib
 import numpy as np
 from keras._tf_keras.keras.models import load_model
 
+from gradcam_plus_plus import evaluate_gradcam_on_test_set
 from utils.config import VGG16_MODEL
 
 # Load the pre-trained CNN/VGG16 model as a feature extractor
@@ -107,8 +108,14 @@ def predict_on_directory(directory_path):
 # Example usage: Predicting on a new MRI image
 if __name__ == "__main__":
     # Single image path for prediction
-    new_image_path = 'dataset/val/no/18 no.jpg'
+    new_image_path = 'dataset/test/yes/Y11.jpg'
 
+    # Example test set (replace with actual image and mask paths)
+    test_images_and_masks = [
+        ('dataset/test/yes/Y11.jpg', 'dataset/mask/mask_Y11.jpg')
+    ]
+    # Run evaluation on the test set
+    evaluate_gradcam_on_test_set(test_images_and_masks)
     # Run the prediction on a single image
     predict_on_new_image_classifier(new_image_path)
 
