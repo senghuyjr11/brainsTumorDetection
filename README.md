@@ -17,8 +17,6 @@ This project uses a pre-trained Convolutional Neural Network (CNN) for feature e
 ├── models/ # Saved models
 │   ├── brain_tumor_cnn_model.keras
 │   ├── brain_tumor_vgg16_model.keras
-│   ├── cnn_model.py
-│   └── vgg16_model.py
 ├── saved_classifiers/ # Saved machine learning classifiers
 │   ├── best_pca.pkl
 │   ├── ensemble_classifier.pkl
@@ -28,12 +26,14 @@ This project uses a pre-trained Convolutional Neural Network (CNN) for feature e
 │   ├── svm_classifier.pkl
 │   └── xgb_classifier.pkl
 ├── utils/ # Utility scripts
+│   ├── gradcam.py
+│   ├── gradcam_keras_model.py
+│   ├── gradcam_plus_plus.py
+│   ├── hybrid_classifier.py
+│   ├── ml_classifiers.py
 │   ├── config.py
 │   ├── data_loader.py
 │   └── split_dataset.py
-├── classifiers/ # Classifier training scripts
-│   ├── hybrid_classifier.py
-│   └── ml_classifiers.py
 ├── predict.py # Prediction script using hybrid classifiers
 ├── main.py # CNN model training script
 └── requirements.txt # Dependencies
@@ -79,14 +79,16 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
   ```
   We use `GridSearchCV` to optimize models like XGBoost and Random Forest.
 
-### Evaluation Results
-Classifiers are evaluated using accuracy, confusion matrix, and classification report. Latest results:
-- **SVM Test Accuracy**: 76.47%
-- **XGBoost Test Accuracy**: 70.59%
-- **Random Forest Test Accuracy**: 68.63%
-- **KNN Test Accuracy**: 76.47%
-- **Logistic Regression Test Accuracy**: 60.78%
-- **Ensemble Test Accuracy**: 76.47%
+## Best PCA Components
+- **n_components**: 1
+
+## Classifier Test Accuracies
+- **Support Vector Machine (SVM)**: 0.8627
+- **XGBoost**: 0.7647
+- **Random Forest**: 0.7843
+- **K-Nearest Neighbors (KNN)**: 0.8039
+- **Logistic Regression**: 0.6863
+- **Ensemble Classifier**: 0.8039
 
 ### Prediction
 Predict on new MRI images using the hybrid classifier:
@@ -99,7 +101,13 @@ Predict on new MRI images using the hybrid classifier:
   python predict.py --directory_path path_to_your_images
   ```
 
+
+## Summary
+The **SVM classifier** demonstrated the highest accuracy with a test accuracy of **0.8627**. Other classifiers, such as Random Forest and KNN, also showed good performance, achieving accuracies of **0.7843** and **0.8039**, respectively. The **ensemble approach**, which combined multiple classifiers, resulted in a test accuracy of **0.8039**, matching the performance of KNN.
+
+## Conclusion
+The results indicate that SVM is the most effective classifier for this particular dataset when reduced to one principal component. Future work could involve optimizing hyperparameters further or exploring different ensemble techniques to improve performance.
+
 ### License
 This project is licensed under the MIT License.
-
 https://senghuyjr11.surge.sh/
