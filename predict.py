@@ -1,14 +1,16 @@
 import os
+
 import cv2
 import joblib
 import numpy as np
 from keras._tf_keras.keras.models import load_model
 
-from gradcam_plus_plus import evaluate_gradcam_on_test_set
-from utils.config import VGG16_MODEL
+from gradcam_plus_plus import GradCamPlusPlus
+from models.resnet50_model import create_resnet_model
+from utils.config import RESNET50_MODEL
 
 # Load the pre-trained CNN/VGG16 model as a feature extractor
-model_path = os.path.join('models',VGG16_MODEL)
+model_path = os.path.join('models',RESNET50_MODEL)
 if os.path.exists(model_path):
     print(f"Loading model from: {model_path}")
     model = load_model(model_path)
@@ -114,8 +116,11 @@ if __name__ == "__main__":
     test_images_and_masks = [
         ('dataset/test/yes/Y11.jpg', 'dataset/mask/mask_Y11.jpg')
     ]
-    # Run evaluation on the test set
-    evaluate_gradcam_on_test_set(test_images_and_masks)
+
+    model_resnet = create_resnet_model(input_shape=(150, 150, 3))
+    gradcam = GradCamPlusPlus(model_resnet, 'conv5_block3_out') #block5_conv3/conv5_block3_out
+    gradcam.evaluate_gradcam_on_test_set(test_images_and_masks)
+
     # Run the prediction on a single image
     predict_on_new_image_classifier(new_image_path)
 

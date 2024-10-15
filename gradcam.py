@@ -5,26 +5,11 @@ from keras import Model
 from keras._tf_keras.keras.preprocessing.image import load_img, img_to_array
 from matplotlib import pyplot as plt
 from models.resnet50_model import create_resnet_model
+from utils.utils import preprocess_image, compute_iou, compute_dice
 
 # Create the model
 model_resnet = create_resnet_model(input_shape=(150, 150, 3))
 
-def process_image(img_path, target_size=(150, 150)):
-    img = load_img(img_path, target_size=target_size)
-    img_array = img_to_array(img)
-    img_array = np.expand_dims(img_array, axis=0)
-    return img_array
-
-def compute_iou(binary_heatmap, ground_truth):
-    intersection = np.sum(np.logical_and(binary_heatmap, ground_truth))
-    union = np.sum(np.logical_or(binary_heatmap, ground_truth))
-    iou = intersection / union if union != 0 else 0
-    return iou
-
-def compute_dice(binary_heatmap, ground_truth):
-    intersection = np.sum(np.logical_and(binary_heatmap, ground_truth))
-    dice_score = (2 * intersection) / (np.sum(binary_heatmap) + np.sum(ground_truth))
-    return dice_score
 
 # Example evaluation on a test set of images
 def evaluate_gradcam_on_test_set(test_images_and_masks, threshold=0.5):
@@ -33,7 +18,7 @@ def evaluate_gradcam_on_test_set(test_images_and_masks, threshold=0.5):
 
     for img_path, ground_truth_path in test_images_and_masks:
         # Load and process the image
-        img_array_resnet = process_image(img_path)
+        img_array_resnet = preprocess_image(img_path)
 
         # Load the ground-truth mask
         ground_truth = cv2.imread(ground_truth_path, cv2.IMREAD_GRAYSCALE)
