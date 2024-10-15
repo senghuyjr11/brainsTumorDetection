@@ -114,7 +114,7 @@ def superimpose_gradcam(img_path, heatmap, alpha=0.4):
 
 if __name__ == '__main__':
     # Select an image for visualization
-    img_path_resnet = 'dataset/train/yes/Y13.jpg'
+    img_path_resnet = '/home/senghuyjr11/Projects/brainsTumorDetection/dataset/new/Y3.jpg'
     img_resnet = load_img(img_path_resnet, target_size=(150, 150))
     img_array_resnet = img_to_array(img_resnet)
     img_array_resnet = np.expand_dims(img_array_resnet, axis=0)

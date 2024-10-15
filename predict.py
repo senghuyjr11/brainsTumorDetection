@@ -5,7 +5,7 @@ import joblib
 import numpy as np
 from keras._tf_keras.keras.models import load_model
 
-from gradcam_plus_plus import GradCamPlusPlus
+from gradcam.gradcam_plus_plus import GradCamPlusPlus
 from models.resnet50_model import create_resnet_model
 from utils.config import RESNET50_MODEL
 
@@ -110,7 +110,7 @@ def predict_on_directory(directory_path):
 # Example usage: Predicting on a new MRI image
 if __name__ == "__main__":
     # Single image path for prediction
-    new_image_path = 'dataset/test/yes/Y11.jpg'
+    new_image_path = 'dataset/new/Y3.jpg'
 
     # Example test set (replace with actual image and mask paths)
     test_images_and_masks = [
